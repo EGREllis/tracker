@@ -70,7 +70,11 @@ public class StockSeries implements Series {
 
     @Override
     public String toString() {
-        return String.format("%1$d records for stock %2$s starting from %3$s to %4$s", getLength(), symbol, SIMPLE_DATE_FORMAT.format(date[0]), SIMPLE_DATE_FORMAT.format(date[getLength()-1]));
+        if (date.length > 0) {
+            return String.format("%1$d records for stock %2$s starting from %3$s to %4$s", getLength(), symbol, SIMPLE_DATE_FORMAT.format(date[0]), SIMPLE_DATE_FORMAT.format(date[getLength() - 1]));
+        } else {
+            return String.format("%1$d records for stock %2$s, no dates", getLength(), symbol);
+        }
     }
 
     public static class StockSeriesBuilder implements Builder<Series> {
