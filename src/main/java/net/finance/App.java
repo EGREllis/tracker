@@ -18,8 +18,6 @@ import java.util.concurrent.Future;
 
 public class App {
     public static void main( String[] args ) throws Exception {
-        //String[] symbols = new String[] {"MSFT", "USD", "TSLA", "LSE.L", "F", "GE", "AAPL", "BAC", "PFE", "AMD", "XOM", "NOK", "WFC", "T", "FB", "MCFE", "FL", "AMZN", "NVDA", "WMT"};
-
         long firstPeriod = 0L;
         long secondPeriod = 1610407859L;
         Listener<Exception> exceptionListener = getListenerFromProgramArguments(args);
