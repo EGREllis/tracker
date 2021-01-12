@@ -1,5 +1,7 @@
 package net.finance.tracker.domain;
 
+import net.finance.tracker.util.Builder;
+
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

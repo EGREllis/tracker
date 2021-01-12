@@ -1,4 +1,4 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.util;
 
 public interface Builder<T> {
     T build();

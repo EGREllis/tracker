@@ -1,7 +1,9 @@
 package net.finance.tracker.scrapper;
 
+import net.finance.tracker.util.Util;
 import net.finance.tracker.domain.Series;
 import net.finance.tracker.domain.StockSeries;
+import net.finance.tracker.util.Listener;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -26,11 +28,13 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
     private final String symbol;
     private final Long firstPeriod;
     private final Long secondPeriod;
+    private final Listener<Exception> listener;
 
-    public YahooFinanceStockScrapper(String symbol, Long firstPeriod, Long secondPeriod) {
+    public YahooFinanceStockScrapper(String symbol, Long firstPeriod, Long secondPeriod, Listener<Exception> exceptionListener) {
         this.symbol = symbol;
         this.firstPeriod = firstPeriod;
         this.secondPeriod = secondPeriod;
+        this.listener = exceptionListener;
     }
 
     @Override
@@ -40,10 +44,10 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
         URLConnection connection = url.openConnection();
         connection.connect();
 
+        String line = null;
+        int lineN = 0;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-            String line;
             boolean header = true;
-            int lineN = 0;
 
             while ((line = reader.readLine()) != null) {
                 if (header) {
@@ -54,19 +58,23 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
                 if (!matcher.matches()) {
                     throw new ParseException(String.format(DATA_LINE_ERROR_TEMPLATE, line), lineN);
                 } else {
-                    Date date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
-                    BigDecimal open = new BigDecimal(matcher.group(2));
-                    BigDecimal high = new BigDecimal(matcher.group(3));
-                    BigDecimal low = new BigDecimal(matcher.group(4));
-                    BigDecimal close = new BigDecimal(matcher.group(5));
-                    BigDecimal adjClose = new BigDecimal(matcher.group(6));
-                    Long volume = Long.parseLong(matcher.group(7));
-                    builder.addLine(date, open, high, low, close, adjClose, volume);
+                    try {
+                        Date date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
+                        BigDecimal open = new BigDecimal(matcher.group(2));
+                        BigDecimal high = new BigDecimal(matcher.group(3));
+                        BigDecimal low = new BigDecimal(matcher.group(4));
+                        BigDecimal close = new BigDecimal(matcher.group(5));
+                        BigDecimal adjClose = new BigDecimal(matcher.group(6));
+                        Long volume = Long.parseLong(matcher.group(7));
+                        builder.addLine(date, open, high, low, close, adjClose, volume);
+                    } catch (Exception e) {
+                        listener.listen(e);
+                    }
                 }
                 lineN++;
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            listener.listen(e);
         }
         return builder.build();
     }
