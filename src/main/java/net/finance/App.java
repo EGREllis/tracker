@@ -4,7 +4,7 @@ import net.finance.tracker.domain.Series;
 import net.finance.tracker.logging.LoggingListener;
 import net.finance.tracker.logging.NoopListener;
 import net.finance.tracker.scrapper.YahooFinanceStockScrapper;
-import net.finance.tracker.util.Listener;
+import net.finance.tracker.pattern.Listener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,30 +18,12 @@ import java.util.concurrent.Future;
  */
 public class App {
     public static void main( String[] args ) throws Exception {
-        String[] symbols = new String[] {"MSFT", "USD", "TSLA", "LSE.L", "F", "GE", "AAPL", "BAC", "PFE", "AMD", "XOM", "NOK", "WFC", "T", "FB"};
+        String[] symbols = new String[] {"MSFT", "USD", "TSLA", "LSE.L", "F", "GE", "AAPL", "BAC", "PFE", "AMD", "XOM", "NOK", "WFC", "T", "FB", "MCFE", "FL", "AMZN", "NVDA", "WMT"};
         long firstPeriod = 0L;
         long secondPeriod = 1610407859L;
         Listener<Exception> exceptionListener = getListenerFromProgramArguments(args);
 
-        int nProcessors = Runtime.getRuntime().availableProcessors();
-        ExecutorService service = Executors.newFixedThreadPool(nProcessors);
-        Map<String,Series> seriesMap = new HashMap<>();
-
-        long startLoad = System.currentTimeMillis();
-        for (String symbol : symbols) {
-            Callable<Series> loader = new YahooFinanceStockScrapper(symbol, firstPeriod, secondPeriod, exceptionListener);
-            Future<Series> future = service.submit(loader);
-            try {
-                seriesMap.put(symbol, future.get());
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
-                e.printStackTrace(System.err);
-                System.err.flush();
-            }
-        }
-        service.shutdown();
-        long stopLoad = System.currentTimeMillis();
-        System.out.println(String.format("Loaded %1$d symbols in %2$f/s", symbols.length, (stopLoad - startLoad)/1000.0));
+        Map<String,Series> seriesMap = loadStockSeries(symbols, firstPeriod, secondPeriod, exceptionListener);
 
         for (Map.Entry<String,Series> record : seriesMap.entrySet()) {
             System.out.println(record.getValue());
@@ -69,5 +51,28 @@ public class App {
         }
         System.out.println(String.format("Verbose mode enabled? %1$s", result));
         return result;
+    }
+
+    private static Map<String,Series> loadStockSeries(String[] symbols, long firstPeriod, long secondPeriod, Listener<Exception> exceptionListener) {
+        int nProcessors = Runtime.getRuntime().availableProcessors();
+        ExecutorService service = Executors.newFixedThreadPool(nProcessors);
+        Map<String,Series> seriesMap = new HashMap<>();
+
+        long startLoad = System.currentTimeMillis();
+        for (String symbol : symbols) {
+            Callable<Series> loader = new YahooFinanceStockScrapper(symbol, firstPeriod, secondPeriod, exceptionListener);
+            Future<Series> future = service.submit(loader);
+            try {
+                seriesMap.put(symbol, future.get());
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+                e.printStackTrace(System.err);
+                System.err.flush();
+            }
+        }
+        service.shutdown();
+        long stopLoad = System.currentTimeMillis();
+        System.out.println(String.format("Loaded %1$d symbols in %2$f/s", symbols.length, (stopLoad - startLoad)/1000.0));
+        return seriesMap;
     }
 }

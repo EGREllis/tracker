@@ -1,6 +1,6 @@
 package net.finance.tracker.logging;
 
-import net.finance.tracker.util.Listener;
+import net.finance.tracker.pattern.Listener;
 
 public class LoggingListener implements Listener<Exception> {
     @Override

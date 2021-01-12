@@ -1,9 +1,8 @@
 package net.finance.tracker.scrapper;
 
-import net.finance.tracker.util.Util;
 import net.finance.tracker.domain.Series;
 import net.finance.tracker.domain.StockSeries;
-import net.finance.tracker.util.Listener;
+import net.finance.tracker.pattern.Listener;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,7 +43,7 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
         URLConnection connection = url.openConnection();
         connection.connect();
 
-        String line = null;
+        String line;
         int lineN = 0;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
             boolean header = true;
