@@ -8,24 +8,24 @@ import java.io.InputStreamReader;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class ClasspathSymbolSource implements SetSource<String> {
-    private final Listener<Exception> listener;
+public class ClasspathFxSymbolSource implements SetSource<String> {
+    private Listener<Exception> listener;
 
-    public ClasspathSymbolSource(Listener<Exception> listener) {
+    public ClasspathFxSymbolSource(Listener<Exception> listener) {
         this.listener = listener;
     }
 
     @Override
     public Set<String> getSource() {
-        Set<String> symbols = new TreeSet<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("data/symbols.dat")))) {
+        Set<String> fxSymbols = new TreeSet<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("data/fx_symbols.dat")))) {
             String line;
             while ( (line = reader.readLine()) != null) {
-                symbols.add(line);
+                fxSymbols.add(line);
             }
         } catch (Exception e) {
             listener.listen(e);
         }
-        return symbols;
+        return fxSymbols;
     }
 }

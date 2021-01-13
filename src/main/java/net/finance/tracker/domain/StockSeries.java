@@ -40,26 +40,32 @@ public class StockSeries implements Series {
         return symbol;
     }
 
+    @Override
     public Date getDate(int i) {
         return date[i];
     }
 
+    @Override
     public BigDecimal getOpen(int i) {
         return open[i];
     }
 
+    @Override
     public BigDecimal getHigh(int i) {
         return high[i];
     }
 
+    @Override
     public BigDecimal getLow(int i) {
         return low[i];
     }
 
+    @Override
     public BigDecimal getClose(int i) {
         return close[i];
     }
 
+    @Override
     public BigDecimal getAdjClose(int i) {
         return adjClose[i];
     }
@@ -79,7 +85,7 @@ public class StockSeries implements Series {
 
     public static class StockSeriesBuilder implements Builder<Series> {
         private final String symbol;
-        private List<Object[]> dataLines = new ArrayList<>(DEFAULT_LINE_SIZE);
+        private final List<Object[]> dataLines = new ArrayList<>(DEFAULT_LINE_SIZE);
 
         public StockSeriesBuilder(String symbol) {
             this.symbol = symbol;
