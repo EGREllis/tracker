@@ -2,8 +2,8 @@ package net.finance.tracker.domain.calculation;
 
 import net.finance.tracker.domain.axis.Axis;
 import net.finance.tracker.domain.axis.SimpleAxis;
-import net.finance.tracker.logging.NoopListener;
-import net.finance.tracker.pattern.Listener;
+import net.finance.tracker.util.logging.NoopListener;
+import net.finance.tracker.util.pattern.Listener;
 
 import java.math.BigDecimal;
 import java.math.MathContext;

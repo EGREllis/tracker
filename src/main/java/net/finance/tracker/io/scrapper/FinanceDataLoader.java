@@ -1,11 +1,11 @@
-package net.finance.tracker.scrapper;
+package net.finance.tracker.io.scrapper;
 
 import net.finance.tracker.domain.series.FinanceData;
 import net.finance.tracker.domain.series.Series;
-import net.finance.tracker.pattern.Listener;
-import net.finance.tracker.pattern.SetSource;
-import net.finance.tracker.source.ClasspathFxSymbolSource;
-import net.finance.tracker.source.ClasspathStockSymbolSource;
+import net.finance.tracker.util.pattern.Listener;
+import net.finance.tracker.util.pattern.SetSource;
+import net.finance.tracker.io.source.ClasspathFxSymbolSource;
+import net.finance.tracker.io.source.ClasspathStockSymbolSource;
 
 import java.util.*;
 import java.util.concurrent.Callable;

@@ -1,10 +1,10 @@
 package net.finance;
 
 import net.finance.tracker.domain.series.FinanceData;
-import net.finance.tracker.logging.LoggingListener;
-import net.finance.tracker.logging.NoopListener;
-import net.finance.tracker.scrapper.FinanceDataLoader;
-import net.finance.tracker.pattern.Listener;
+import net.finance.tracker.util.logging.LoggingListener;
+import net.finance.tracker.util.logging.NoopListener;
+import net.finance.tracker.io.scrapper.FinanceDataLoader;
+import net.finance.tracker.util.pattern.Listener;
 
 public class App {
     public static void main( String[] args ) throws Exception {

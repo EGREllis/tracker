@@ -1,7 +1,7 @@
-package net.finance.tracker.source;
+package net.finance.tracker.io.source;
 
-import net.finance.tracker.pattern.Listener;
-import net.finance.tracker.pattern.SetSource;
+import net.finance.tracker.util.pattern.Listener;
+import net.finance.tracker.util.pattern.SetSource;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

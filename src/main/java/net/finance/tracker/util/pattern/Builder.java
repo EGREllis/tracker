@@ -1,4 +1,4 @@
-package net.finance.tracker.pattern;
+package net.finance.tracker.util.pattern;
 
 public interface Builder<T> {
     T build();
