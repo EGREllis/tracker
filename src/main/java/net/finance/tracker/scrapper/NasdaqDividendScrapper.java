@@ -1,6 +1,6 @@
 package net.finance.tracker.scrapper;
 
-import net.finance.tracker.domain.NasdaqDividendSeries;
+import net.finance.tracker.domain.series.NasdaqDividendSeries;
 import net.finance.tracker.pattern.Listener;
 
 import java.io.BufferedReader;

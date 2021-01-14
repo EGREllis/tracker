@@ -1,4 +1,4 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.domain.series;
 
 import net.finance.tracker.pattern.Builder;
 

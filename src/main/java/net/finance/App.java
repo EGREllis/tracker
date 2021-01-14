@@ -1,6 +1,6 @@
 package net.finance;
 
-import net.finance.tracker.domain.FinanceData;
+import net.finance.tracker.domain.series.FinanceData;
 import net.finance.tracker.logging.LoggingListener;
 import net.finance.tracker.logging.NoopListener;
 import net.finance.tracker.scrapper.FinanceDataLoader;

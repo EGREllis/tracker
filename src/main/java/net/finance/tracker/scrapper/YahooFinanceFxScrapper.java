@@ -1,7 +1,7 @@
 package net.finance.tracker.scrapper;
 
-import net.finance.tracker.domain.FXSeries;
-import net.finance.tracker.domain.Series;
+import net.finance.tracker.domain.series.FXSeries;
+import net.finance.tracker.domain.series.Series;
 import net.finance.tracker.pattern.Listener;
 
 import java.io.BufferedReader;

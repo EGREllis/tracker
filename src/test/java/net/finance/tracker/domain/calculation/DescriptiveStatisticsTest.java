@@ -1,4 +1,4 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.domain.calculation;
 
 import net.finance.tracker.domain.axis.Axis;
 import net.finance.tracker.domain.axis.SimpleAxis;

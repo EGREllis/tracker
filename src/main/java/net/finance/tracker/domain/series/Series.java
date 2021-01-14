@@ -1,4 +1,4 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.domain.series;
 
 import java.math.BigDecimal;
 import java.util.Date;

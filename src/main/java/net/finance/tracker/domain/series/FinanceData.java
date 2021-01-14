@@ -1,4 +1,6 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.domain.series;
+
+import net.finance.tracker.domain.series.Series;
 
 import java.util.Collections;
 import java.util.Map;

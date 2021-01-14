@@ -1,6 +1,6 @@
 package net.finance.tracker.domain.axis;
 
-import net.finance.tracker.domain.Series;
+import net.finance.tracker.domain.series.Series;
 
 import java.math.BigDecimal;
 import java.util.Date;

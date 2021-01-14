@@ -1,7 +1,7 @@
 package net.finance.tracker.scrapper;
 
-import net.finance.tracker.domain.FinanceData;
-import net.finance.tracker.domain.Series;
+import net.finance.tracker.domain.series.FinanceData;
+import net.finance.tracker.domain.series.Series;
 import net.finance.tracker.pattern.Listener;
 import net.finance.tracker.pattern.SetSource;
 import net.finance.tracker.source.ClasspathFxSymbolSource;

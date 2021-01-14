@@ -1,4 +1,4 @@
-package net.finance.tracker.domain;
+package net.finance.tracker.domain.calculation;
 
 import java.math.BigDecimal;
 import java.util.List;
