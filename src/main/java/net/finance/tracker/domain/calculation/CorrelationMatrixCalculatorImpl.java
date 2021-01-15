@@ -97,10 +97,15 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         private final DescriptiveStatistics xAxis;
         private final DescriptiveStatistics yAxis;
 
-        public CorrelationCalculator(DescriptiveStatistics xAxis, DescriptiveStatistics yAxis, MathContext mathContext) {
+        public CorrelationCalculator(DescriptiveStatistics xAxis, DescriptiveStatistics yAxis, MathContext mathContext) throws CanNotCalculateException {
             this.mathContext = mathContext;
             this.xAxis = xAxis;
             this.yAxis = yAxis;
+            if (xAxis.getStandardDeviation().equals(new BigDecimal(0))) {
+                throw new CanNotCalculateException("Standard deviation of xAxis is zero");
+            } else if (yAxis.getStandardDeviation().equals(new BigDecimal(0))) {
+                throw new CanNotCalculateException("Standard deviation of yAxis is zero");
+            }
         }
 
         @Override
@@ -125,8 +130,8 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                     BigDecimal stdY = yAxis.getMean().subtract(yAxis.getValue(yIndex)).divide(yAxis.getStandardDeviation(), mathContext);
                     tally = tally.add(stdX.multiply(stdY));
                     points++;
-                    xIndex++;
-                    yIndex++;
+                    xIndex--;
+                    yIndex--;
                 }
             }
             return new CorrelationResult(tally.divide(new BigDecimal(points -1), mathContext), xAxis.getSymbol(), yAxis.getSymbol(), mathContext);

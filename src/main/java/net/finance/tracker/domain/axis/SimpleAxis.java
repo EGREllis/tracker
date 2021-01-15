@@ -12,6 +12,9 @@ public class SimpleAxis implements Axis {
         this.symbol = symbol;
         this.data = data;
         this.dates = dates;
+        if (data.length != dates.length) {
+            throw new IllegalArgumentException(String.format("Data length (%1$d) and Date length (%2$d) do not match", data.length, dates.length));
+        }
     }
 
     @Override

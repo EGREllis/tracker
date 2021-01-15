@@ -14,7 +14,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class DescriptiveStatisticsTest {
     @Test
     public void when_calculatingStatistics_given_easyData_calculatesCorrectAnswer() throws Exception {
-        BigDecimal[] data = new BigDecimal[] {new BigDecimal(-1), new BigDecimal(0), new BigDecimal(1)};
+        BigDecimal[] data = new BigDecimal[] {
+                new BigDecimal(-1), new BigDecimal(1), new BigDecimal(0)};
         Date[] dates = new Date[] {new Date(0), new Date(1), new Date(2)};
         Axis axis = new SimpleAxis("TEST", data, dates);
         DescriptiveStatistics statistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(axis, MathContext.DECIMAL64).call();

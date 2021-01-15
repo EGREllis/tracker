@@ -64,15 +64,19 @@ public class DescriptiveStatistics implements Axis {
             for (int i = 1; i < axis.getLength(); i++) {
                 total = total.add(axis.getValue(i));
             }
-            return total.divide(new BigDecimal(axis.getLength()-1), mathContext);
+            return total.divide(new BigDecimal(axis.getLength()), mathContext);
         }
 
         private BigDecimal calculateStandardDeviation(BigDecimal mean) {
             BigDecimal tally = mean.subtract(axis.getValue(0)).pow(2);
-            for (int i = 0; i < axis.getLength(); i++) {
-                tally.add(mean.subtract(axis.getValue(i)).pow(2));
+            for (int i = 1; i < axis.getLength(); i++) {
+                BigDecimal term = mean.subtract(axis.getValue(i)).pow(2);
+                tally = tally.add(term);
             }
-            return tally.sqrt(mathContext);
+            BigDecimal divisor = new BigDecimal(axis.getLength()-1);
+            BigDecimal ratio = tally.divide(divisor, mathContext);
+            BigDecimal stddev = ratio.sqrt(mathContext);
+            return stddev;
         }
 
         @Override
