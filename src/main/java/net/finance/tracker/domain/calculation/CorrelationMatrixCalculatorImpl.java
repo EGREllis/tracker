@@ -19,11 +19,16 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
 
     @Override
     public CorrelationMatrix calculate(List<Axis> axes, ExecutorService service) {
+        long startTime = System.currentTimeMillis();
+        int nCorrelations = correlationsToCalculate(axes.size()*2);
+        System.out.println(String.format("Calculating %1$d correlations", nCorrelations));
         List<String> labels = buildAxes(axes);
         BigDecimal[][] data = buildEmptyData(axes.size());
 
         Map<String,DescriptiveStatistics> stats = calculateDescriptiveStatistics(axes, service);
         populateCorrelationMatrix(data, labels, stats, service);
+        long stopTime = System.currentTimeMillis();
+        System.out.println(String.format("Calculated %1$d correlations in %2$f/s", nCorrelations, (stopTime - startTime)/1000.0));
 
         return new CorrelationMatrixImpl(labels, data);
     }
@@ -68,12 +73,22 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
     private void populateCorrelationMatrix(BigDecimal[][] data, List<String> axes, Map<String, DescriptiveStatistics> stats, ExecutorService service) {
         long startTime = System.currentTimeMillis();
         int numberOfTasks = correlationsToCalculate(axes.size());
+        Set<String> missingSymbols = new TreeSet<>();
         List<Future<CorrelationResult>> futures = new ArrayList<>(numberOfTasks);
         for (int y = 0; y < axes.size(); y++) {
             for (int x = y + 1; x < axes.size(); x++) {
                 DescriptiveStatistics xStats = stats.get(axes.get(x));
                 DescriptiveStatistics yStats = stats.get(axes.get(y));
                 try {
+                    if (xStats == null) {
+                        missingSymbols.add(axes.get(x));
+                    }
+                    if (yStats == null) {
+                        missingSymbols.add(axes.get(y));
+                    }
+                    if (xStats == null || yStats == null) {
+                        continue;
+                    }
                     Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext);
                     futures.add(service.submit(calc));
                 } catch (CanNotCalculateException e) {
@@ -81,6 +96,11 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                 }
             }
         }
+
+        for (String missing : missingSymbols) {
+            System.err.println(String.format("Could not find descriptive statistics for %1$s", missing));
+        }
+        System.err.flush();
 
         for (Future<CorrelationResult> calculatedResult : futures) {
             CorrelationResult result = null;

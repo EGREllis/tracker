@@ -1,16 +1,51 @@
 package net.finance;
 
+import net.finance.tracker.domain.axis.Axis;
+import net.finance.tracker.domain.axis.CloseAxisAdapter;
+import net.finance.tracker.domain.axis.OpenAxisAdapter;
+import net.finance.tracker.domain.calculation.CorrelationMatrix;
+import net.finance.tracker.domain.calculation.CorrelationMatrixCalculator;
+import net.finance.tracker.domain.calculation.CorrelationMatrixCalculatorImpl;
+import net.finance.tracker.domain.calculation.DescriptiveStatistics;
 import net.finance.tracker.domain.series.FinanceData;
+import net.finance.tracker.domain.series.Series;
 import net.finance.tracker.util.logging.LoggingListener;
 import net.finance.tracker.util.logging.NoopListener;
 import net.finance.tracker.io.scrapper.FinanceDataLoader;
 import net.finance.tracker.util.pattern.Listener;
+
+import java.math.MathContext;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class App {
     public static void main( String[] args ) throws Exception {
         Listener<Exception> exceptionListener = getListenerFromProgramArguments(args);
 
         FinanceData data = new FinanceDataLoader(exceptionListener).call();
+
+
+        CorrelationMatrixCalculator calculator = new CorrelationMatrixCalculatorImpl(exceptionListener, MathContext.DECIMAL64);
+        int nThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService service = Executors.newFixedThreadPool(calculator.correlationsToCalculate(nThreads));
+        try {
+            CorrelationMatrix stocks = correlate(data.getStocks(), calculator, service);
+            CorrelationMatrix rates = correlate(data.getRates(), calculator, service);
+        } finally {
+            service.shutdown();
+        }
+    }
+
+    private static CorrelationMatrix correlate(Map<String, Series> seriesMap, CorrelationMatrixCalculator calculator, ExecutorService service) {
+        List<Axis> axes = new ArrayList<>(seriesMap.size() * 2);
+        for (Map.Entry<String, Series> entry : seriesMap.entrySet()) {
+            axes.add(new OpenAxisAdapter(entry.getValue()));
+            axes.add(new CloseAxisAdapter(entry.getValue()));
+        }
+        return calculator.calculate(axes, service);
     }
 
     private static Listener<Exception> getListenerFromProgramArguments(String[] args) {
