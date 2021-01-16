@@ -7,4 +7,5 @@ import java.util.concurrent.ExecutorService;
 
 public interface CorrelationMatrixCalculator {
     CorrelationMatrix calculate(List<Axis> axes, ExecutorService service);
+    int correlationsToCalculate(int axisSize);
 }

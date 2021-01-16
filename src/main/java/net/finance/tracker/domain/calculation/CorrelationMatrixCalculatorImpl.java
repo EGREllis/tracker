@@ -33,7 +33,6 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         for (Axis axis : axes) {
             labels.add(axis.getSymbol());
         }
-        Collections.sort(labels);
         return labels;
     }
 
@@ -62,18 +61,49 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         return stats;
     }
 
-    private void populateCorrelationMatrix(BigDecimal[][] data, List<String> axes, Map<String, DescriptiveStatistics> stats, ExecutorService service) {
+    public int correlationsToCalculate(int axesSize) {
+        return ((int)Math.pow(axesSize, 2) - axesSize) / 2;
+    }
 
+    private void populateCorrelationMatrix(BigDecimal[][] data, List<String> axes, Map<String, DescriptiveStatistics> stats, ExecutorService service) {
+        long startTime = System.currentTimeMillis();
+        int numberOfTasks = correlationsToCalculate(axes.size());
+        List<Future<CorrelationResult>> futures = new ArrayList<>(numberOfTasks);
+        for (int y = 0; y < axes.size(); y++) {
+            for (int x = y + 1; x < axes.size(); x++) {
+                DescriptiveStatistics xStats = stats.get(axes.get(x));
+                DescriptiveStatistics yStats = stats.get(axes.get(y));
+                try {
+                    Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext);
+                    futures.add(service.submit(calc));
+                } catch (CanNotCalculateException e) {
+                    exceptionListener.listen(e);
+                }
+            }
+        }
+
+        for (Future<CorrelationResult> calculatedResult : futures) {
+            CorrelationResult result = null;
+            try {
+                result = calculatedResult.get();
+                int xIndex = axes.indexOf(result.symbolX);
+                int yIndex = axes.indexOf(result.symbolY);
+                data[yIndex][xIndex] = result.getResult();
+                data[xIndex][yIndex] = result.getResult();
+            } catch (InterruptedException | ExecutionException e) {
+                exceptionListener.listen(e);
+            }
+        }
+        long stopTime = System.currentTimeMillis();
+        System.out.println(String.format("Calculated %1$d correlations in %2$f/s", numberOfTasks, (stopTime - startTime)/1000.0));
     }
 
     static class CorrelationResult {
-        private final MathContext mathContext;
         private final BigDecimal result;
         private final String symbolX;
         private final String symbolY;
 
-        public CorrelationResult(BigDecimal result, String symbolX, String symbolY, MathContext mathContext) {
-            this.mathContext = mathContext;
+        public CorrelationResult(BigDecimal result, String symbolX, String symbolY) {
             this.result = result;
             this.symbolX = symbolX;
             this.symbolY = symbolY;
@@ -134,7 +164,7 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                     yIndex--;
                 }
             }
-            return new CorrelationResult(tally.divide(new BigDecimal(points -1), mathContext), xAxis.getSymbol(), yAxis.getSymbol(), mathContext);
+            return new CorrelationResult(tally.divide(new BigDecimal(points -1), mathContext), xAxis.getSymbol(), yAxis.getSymbol());
         }
     }
 }
