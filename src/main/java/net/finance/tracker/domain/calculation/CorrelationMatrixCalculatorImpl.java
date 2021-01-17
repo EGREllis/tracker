@@ -8,6 +8,16 @@ import java.math.MathContext;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * This needs a significant re-write:
+ *  1) We only calculate correlations for dates present on both Axes
+ *  2) The mean and standard deviation are based on the complete sample
+ *  3) The mean and standard deviation are based on a different population from the correlation
+ *
+ * Solutions:
+ *  1) Add a filter step before the call to the correlation matrix calculator (weak - a coder that forgets this issue could still fall foul of the bug)
+ *  2) Modify correlation matrix calculator to receive Axes, filter them, calculate descriptive statistics then calculate correlations
+ */
 public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalculator {
     private final Listener<Exception> exceptionListener;
     private final MathContext mathContext;

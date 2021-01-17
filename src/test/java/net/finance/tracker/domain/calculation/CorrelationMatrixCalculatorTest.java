@@ -23,6 +23,28 @@ public class CorrelationMatrixCalculatorTest {
     private static final BigDecimal TOLERANCE = new BigDecimal("0.000000000000001");
 
     @Test
+    public void when_calculatingCorrelation_given_misMatchedDates_then_onlyIncludeMatchingDates() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        MathContext mathContext = MathContext.DECIMAL64;
+        BigDecimal[] aData = bigDecimalArray(-1, 10, 1);
+        BigDecimal[] bData = bigDecimalArray(-1, 1);
+        Date[] aDates = new Date[] {new Date(0), new Date(1), new Date(2)};
+        Date[] bDates = new Date[] {new Date(0), new Date(2)};
+
+        Axis aAxis = new SimpleAxis("A", aData, aDates);
+        Axis bAxis = new SimpleAxis("B", bData, bDates);
+        DescriptiveStatistics aStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(aAxis, mathContext).call();
+        DescriptiveStatistics bStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(bAxis, mathContext).call();
+
+        CorrelationMatrixCalculatorImpl.CorrelationCalculator correlation = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(aStats, bStats, mathContext, latch);
+        CorrelationMatrixCalculatorImpl.CorrelationResult result = correlation.call();
+
+        assertThat(result.getSymbolX(), equalTo("A"));
+        assertThat(result.getSymbolY(), equalTo("B"));
+        assertEquals(result.getResult(), new BigDecimal(1));
+    }
+
+    @Test
     public void when_calculatingCorrelation_given_positiveCorrelation_then_returnsOne() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         MathContext mathContext = MathContext.DECIMAL64;
