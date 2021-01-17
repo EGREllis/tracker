@@ -20,27 +20,32 @@ import java.util.concurrent.*;
  */
 public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalculator {
     private final Listener<Exception> exceptionListener;
+    private final AxisCleaner axisCleaner;
     private final MathContext mathContext;
 
-    public CorrelationMatrixCalculatorImpl(Listener<Exception> exceptionListener, MathContext mathContext) {
+    public CorrelationMatrixCalculatorImpl(Listener<Exception> exceptionListener, AxisCleaner axisCleaner, MathContext mathContext) {
         this.exceptionListener = exceptionListener;
+        this.axisCleaner = axisCleaner;
         this.mathContext = mathContext;
     }
 
     @Override
     public CorrelationMatrix calculate(List<Axis> axes, ExecutorService service) {
-        long startTime = System.currentTimeMillis();
-        int nCorrelations = correlationsToCalculate(axes.size());
-        System.out.println(String.format("Calculating %1$dx%1$d matrix using %2$d correlations", axes.size(), nCorrelations));
-        List<String> labels = buildAxes(axes);
-        BigDecimal[][] data = buildEmptyData(axes.size());
+        try {
+            long startTime = System.currentTimeMillis();
+            int nCorrelations = correlationsToCalculate(axes.size());
+            System.out.println(String.format("Calculating %1$dx%1$d matrix using %2$d correlations", axes.size(), nCorrelations));
+            List<String> labels = buildAxes(axes);
+            BigDecimal[][] data = buildEmptyData(axes.size());
 
-        Map<String,DescriptiveStatistics> stats = calculateDescriptiveStatistics(axes, service);
-        populateCorrelationMatrix(data, labels, stats, service);
-        long stopTime = System.currentTimeMillis();
-        System.out.println(String.format("Calculated %1$d correlations in %2$f/s", nCorrelations, (stopTime - startTime)/1000.0));
+            populateCorrelationMatrix(data, axes, service);
+            long stopTime = System.currentTimeMillis();
+            System.out.println(String.format("Calculated %1$d correlations in %2$f/s", nCorrelations, (stopTime - startTime) / 1000.0));
 
-        return new CorrelationMatrixImpl(labels, data);
+            return new CorrelationMatrixImpl(labels, data);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private List<String> buildAxes(List<Axis> axes) {
@@ -59,28 +64,11 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         return data;
     }
 
-    private Map<String, DescriptiveStatistics> calculateDescriptiveStatistics(List<Axis> axes, ExecutorService service) {
-        Map<String, DescriptiveStatistics> stats = new ConcurrentHashMap<>();
-        List<Future<DescriptiveStatistics>> futures = new ArrayList<>(axes.size());
-        for (Axis axis : axes) {
-            futures.add(service.submit(new DescriptiveStatistics.DescriptiveStatisticBuilder(axis, MathContext.DECIMAL64)));
-        }
-        for (Future<DescriptiveStatistics> calc : futures) {
-            try {
-                DescriptiveStatistics stat = calc.get();
-                stats.put(stat.getAxis().getSymbol(), stat);
-            } catch (InterruptedException | ExecutionException e) {
-                exceptionListener.listen(e);
-            }
-        }
-        return stats;
-    }
-
     public int correlationsToCalculate(int axesSize) {
         return ((int)Math.pow(axesSize, 2) - axesSize) / 2;
     }
 
-    private void populateCorrelationMatrix(BigDecimal[][] data, List<String> axes, Map<String, DescriptiveStatistics> stats, ExecutorService service) {
+    private void populateCorrelationMatrix(BigDecimal[][] data, List<Axis> axes, ExecutorService service) throws Exception {
         long startTime = System.currentTimeMillis();
         int numberOfTasks = correlationsToCalculate(axes.size());
 
@@ -91,18 +79,10 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         long tasks = 0;
         for (int y = 0; y < axes.size(); y++) {
             for (int x = y + 1; x < axes.size(); x++) {
-                DescriptiveStatistics xStats = stats.get(axes.get(x));
-                DescriptiveStatistics yStats = stats.get(axes.get(y));
+                CleanedAxes cleaned = axisCleaner.cleanAxes(axes.get(x), axes.get(y));
+                DescriptiveStatistics xStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getAClean(), mathContext).call();
+                DescriptiveStatistics yStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getBClean(), mathContext).call();
                 try {
-                    if (xStats == null) {
-                        missingSymbols.add(axes.get(x));
-                    }
-                    if (yStats == null) {
-                        missingSymbols.add(axes.get(y));
-                    }
-                    if (xStats == null || yStats == null) {
-                        continue;
-                    }
                     Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext, latch);
                     futures.add(service.submit(calc));
                     tasks++;

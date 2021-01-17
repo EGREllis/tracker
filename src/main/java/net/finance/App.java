@@ -2,9 +2,7 @@ package net.finance;
 
 import net.finance.tracker.domain.axis.Axis;
 import net.finance.tracker.domain.axis.OpenAxisAdapter;
-import net.finance.tracker.domain.calculation.CorrelationMatrix;
-import net.finance.tracker.domain.calculation.CorrelationMatrixCalculator;
-import net.finance.tracker.domain.calculation.CorrelationMatrixCalculatorImpl;
+import net.finance.tracker.domain.calculation.*;
 import net.finance.tracker.domain.series.FinanceData;
 import net.finance.tracker.domain.series.Series;
 import net.finance.tracker.util.logging.LoggingListener;
@@ -27,8 +25,9 @@ public class App {
 
         FinanceData data = new FinanceDataLoader(exceptionListener).call();
         System.out.println(data.getSummary());
+        AxisCleaner axisCleaner = new AxisCleanerImpl();
 
-        CorrelationMatrixCalculator calculator = new CorrelationMatrixCalculatorImpl(exceptionListener, MathContext.DECIMAL64);
+        CorrelationMatrixCalculator calculator = new CorrelationMatrixCalculatorImpl(exceptionListener, axisCleaner, MathContext.DECIMAL64);
         int nThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService service = Executors.newFixedThreadPool(nThreads);
         try {
