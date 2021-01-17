@@ -15,8 +15,9 @@ public class FXSeries implements Series {
     private final BigDecimal[] high;
     private final BigDecimal[] low;
     private final BigDecimal[] adjClose;
+    private final int nDataQualityIssues;
 
-    private FXSeries(String symbol, Date[] date, BigDecimal[] open, BigDecimal[] close, BigDecimal[] high, BigDecimal[] low, BigDecimal[] adjClose) {
+    private FXSeries(String symbol, Date[] date, BigDecimal[] open, BigDecimal[] close, BigDecimal[] high, BigDecimal[] low, BigDecimal[] adjClose, int nDataQualityIssues) {
         this.symbol = symbol;
         this.date = date;
         this.open = open;
@@ -24,6 +25,12 @@ public class FXSeries implements Series {
         this.high = high;
         this.low = low;
         this.adjClose = adjClose;
+        this.nDataQualityIssues = nDataQualityIssues;
+    }
+
+    @Override
+    public int getNDataQualityIssues() {
+        return nDataQualityIssues;
     }
 
     @Override
@@ -74,6 +81,7 @@ public class FXSeries implements Series {
     public static class FXSeriesBuilder implements Builder<FXSeries> {
         private final List<Object[]> data = new ArrayList<>();
         private final String symbol;
+        private final List<Exception> dataQualityIssues = new ArrayList<>();
 
         public FXSeriesBuilder(String symbol) {
             this.symbol = symbol;
@@ -81,6 +89,14 @@ public class FXSeries implements Series {
 
         public void addRow(Date date, BigDecimal open, BigDecimal close, BigDecimal high, BigDecimal low, BigDecimal adjClose) {
             data.add(new Object[]{date, open, close, high, low, adjClose});
+        }
+
+        public void addDataQualityIssue(Exception e) {
+            dataQualityIssues.add(e);
+        }
+
+        public String getSummary() {
+            return String.format("Loaded %1$d lines for %2$s with %3$d data issues", data.size(), symbol, dataQualityIssues.size());
         }
 
         @Override
@@ -100,7 +116,7 @@ public class FXSeries implements Series {
                 low[i] = (BigDecimal)row[4];
                 adjClose[i] = (BigDecimal)row[5];
             }
-            return new FXSeries(symbol, dates, open, close, high, low, adjClose);
+            return new FXSeries(symbol, dates, open, close, high, low, adjClose, dataQualityIssues.size());
         }
     }
 }

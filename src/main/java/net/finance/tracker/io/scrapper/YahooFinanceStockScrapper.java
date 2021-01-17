@@ -57,17 +57,52 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
                 if (!matcher.matches()) {
                     throw new ParseException(String.format(DATA_LINE_ERROR_TEMPLATE, line), lineN);
                 } else {
+                    Date date = null;
+                    BigDecimal open = null;
+                    BigDecimal close = null;
+                    BigDecimal high = null;
+                    BigDecimal low = null;
+                    BigDecimal adjClose = null;
+                    Long volume = null;
                     try {
-                        Date date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
-                        BigDecimal open = new BigDecimal(matcher.group(2));
-                        BigDecimal high = new BigDecimal(matcher.group(3));
-                        BigDecimal low = new BigDecimal(matcher.group(4));
-                        BigDecimal close = new BigDecimal(matcher.group(5));
-                        BigDecimal adjClose = new BigDecimal(matcher.group(6));
-                        Long volume = Long.parseLong(matcher.group(7));
+                        try {
+                            date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for date %1$s for symbol %2$s in line:\n%3$s", matcher.group(1), symbol, line), e);
+                        }
+                        try {
+                            open = new BigDecimal(matcher.group(2));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for open %1$s for symbol %2$s in line:\n%3$s", matcher.group(2), symbol, line), e);
+                        }
+                        try {
+                            high = new BigDecimal(matcher.group(3));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for high %1$s for symbol %2$s in line:\n%3$s", matcher.group(3), symbol, line), e);
+                        }
+                        try {
+                            low = new BigDecimal(matcher.group(4));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for high %1$s for symbol %2$s in line:\n%3$s", matcher.group(4), symbol, line), e);
+                        }
+                        try {
+                            close = new BigDecimal(matcher.group(5));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for close %1$s for symbol %2$s in line:\n%3$s", matcher.group(5), symbol, line), e);
+                        }
+                        try {
+                            adjClose = new BigDecimal(matcher.group(6));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for adjustedClose %1$s for symbol %2$s in line:\n%3$s", matcher.group(6), symbol, line), e);
+                        }
+                        try {
+                            volume = Long.parseLong(matcher.group(7));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Parsing error for volume %1$s for symbol %2$s in line:\n%3$s", volume, symbol, line), e);
+                        }
                         builder.addLine(date, open, high, low, close, adjClose, volume);
                     } catch (Exception e) {
-                        listener.listen(e);
+                        builder.addDataQualityIssue(e);
                     }
                 }
                 lineN++;

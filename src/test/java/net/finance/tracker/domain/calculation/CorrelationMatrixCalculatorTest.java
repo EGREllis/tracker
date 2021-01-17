@@ -8,6 +8,7 @@ import java.math.MathContext;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,6 +24,7 @@ public class CorrelationMatrixCalculatorTest {
 
     @Test
     public void when_calculatingCorrelation_given_positiveCorrelation_then_returnsOne() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         MathContext mathContext = MathContext.DECIMAL64;
         BigDecimal[] data = bigDecimalArray(-1, 1, 0);
         Date[] dates = makeDates(data);
@@ -30,7 +32,7 @@ public class CorrelationMatrixCalculatorTest {
         Axis axis = new SimpleAxis("TEST", data, dates);
         DescriptiveStatistics stats = new DescriptiveStatistics.DescriptiveStatisticBuilder(axis, mathContext).call();
 
-        CorrelationMatrixCalculatorImpl.CorrelationCalculator correlation = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(stats, stats, MathContext.DECIMAL64);
+        CorrelationMatrixCalculatorImpl.CorrelationCalculator correlation = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(stats, stats, MathContext.DECIMAL64, latch);
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlation.call();
 
         assertThat(result.getSymbolX(), equalTo("TEST"));
@@ -40,6 +42,7 @@ public class CorrelationMatrixCalculatorTest {
 
     @Test
     public void when_calculateCorrelation_given_negatigveCorrelation_then_returnsMinusOne() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         MathContext mathContext = MathContext.DECIMAL64;
         BigDecimal[] positiveData = bigDecimalArray(-1, 1);
         BigDecimal[] negativeData = bigDecimalArray(1, -1);
@@ -51,7 +54,7 @@ public class CorrelationMatrixCalculatorTest {
         DescriptiveStatistics negativeStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(negativeAxis, mathContext).call();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(positiveStatistics, negativeStatistics, mathContext);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(positiveStatistics, negativeStatistics, mathContext, latch);
 
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 
@@ -62,6 +65,7 @@ public class CorrelationMatrixCalculatorTest {
 
     @Test(expected = CanNotCalculateException.class)
     public void when_calculateCorrelation_given_flatSample_then_exceptionThrown() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         MathContext mathContext = MathContext.DECIMAL64;
         BigDecimal[] vertical = bigDecimalArray(0, 0, 0);
         BigDecimal[] horiztonal = bigDecimalArray(1, 1, 1);
@@ -73,7 +77,7 @@ public class CorrelationMatrixCalculatorTest {
         DescriptiveStatistics horizontalStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(horizontalAxis, mathContext).call();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStatistics, horizontalStatistics, mathContext);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStatistics, horizontalStatistics, mathContext, latch);
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 
         assert false : "A CanNotCalculateException should not have been thrown.";
@@ -81,6 +85,7 @@ public class CorrelationMatrixCalculatorTest {
 
     @Test
     public void when_calcuateCorrelation_given_unCorrelatedButCalculable_then_returnsZero() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         MathContext mathContext = MathContext.DECIMAL32;
         BigDecimal[] vertical = bigDecimalArray(0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0, -1);
         BigDecimal[] horizontal = bigDecimalArray(-1, 0, 1, 0, -1, 0, 1, 0, -1, 0, 1, 0);
@@ -92,7 +97,7 @@ public class CorrelationMatrixCalculatorTest {
         DescriptiveStatistics horizontalStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(horizontalAxis, mathContext).call();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStats, horizontalStats, mathContext);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStats, horizontalStats, mathContext, latch);
 
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 

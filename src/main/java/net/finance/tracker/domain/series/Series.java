@@ -12,4 +12,5 @@ public interface Series {
     BigDecimal getHigh(int i);
     BigDecimal getLow(int i);
     BigDecimal getAdjClose(int i);
+    int getNDataQualityIssues();
 }

@@ -54,18 +54,48 @@ public class YahooFinanceFxScrapper implements Callable<Series> {
                 try {
                     Matcher matcher = DATA_LINE_PATTERN.matcher(line);
                     if (matcher.matches()) {
-                        Date date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
-                        BigDecimal open = new BigDecimal(matcher.group(2));
-                        BigDecimal high = new BigDecimal(matcher.group(3));
-                        BigDecimal low = new BigDecimal(matcher.group(4));
-                        BigDecimal close = new BigDecimal(matcher.group(5));
-                        BigDecimal adjClose = new BigDecimal(matcher.group(6));
+                        Date date;
+                        BigDecimal open;
+                        BigDecimal high;
+                        BigDecimal low;
+                        BigDecimal close;
+                        BigDecimal adjClose;
+                        try {
+                            date = SIMPLE_DATE_FORMAT.parse(matcher.group(1));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse date %1$s for symbol %2$s in line:\n%3$s", matcher.group(1), symbol, line));
+                        }
+                        try {
+                            open = new BigDecimal(matcher.group(2));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse open %1$s for symbol %2$s in line:\n%3$s", matcher.group(2), symbol, line));
+                        }
+                        try {
+                            high = new BigDecimal(matcher.group(3));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse high %1$s for symbol %2$s in line:\n%3$s", matcher.group(3), symbol, line));
+                        }
+                        try {
+                            low = new BigDecimal(matcher.group(4));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse low %1$s for symbol %2$s in line:\n%3$s", matcher.group(4), symbol, line));
+                        }
+                        try {
+                            close = new BigDecimal(matcher.group(5));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse close %1$s for symbol %2$s in line:\n%3$s", matcher.group(5), symbol, line));
+                        }
+                        try {
+                            adjClose = new BigDecimal(matcher.group(6));
+                        } catch (Exception e) {
+                            throw new RuntimeException(String.format("Could not parse adjustedClose %1$s for symbol %2$s in line:\n%3$s", matcher.group(6), symbol, line));
+                        }
                         builder.addRow(date, open, close, high, low, adjClose);
                     } else {
                         System.err.println(String.format("Could not parse FX line: %1$s", line));
                     }
                 } catch (Exception e) {
-                    listener.listen(e);
+                    builder.addDataQualityIssue(e);
                 }
             }
         }

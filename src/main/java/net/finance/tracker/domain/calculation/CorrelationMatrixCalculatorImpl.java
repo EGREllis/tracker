@@ -20,8 +20,8 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
     @Override
     public CorrelationMatrix calculate(List<Axis> axes, ExecutorService service) {
         long startTime = System.currentTimeMillis();
-        int nCorrelations = correlationsToCalculate(axes.size()*2);
-        System.out.println(String.format("Calculating %1$d correlations", nCorrelations));
+        int nCorrelations = correlationsToCalculate(axes.size());
+        System.out.println(String.format("Calculating %1$dx%1$d matrix using %2$d correlations", axes.size(), nCorrelations));
         List<String> labels = buildAxes(axes);
         BigDecimal[][] data = buildEmptyData(axes.size());
 
@@ -73,8 +73,12 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
     private void populateCorrelationMatrix(BigDecimal[][] data, List<String> axes, Map<String, DescriptiveStatistics> stats, ExecutorService service) {
         long startTime = System.currentTimeMillis();
         int numberOfTasks = correlationsToCalculate(axes.size());
+
+        CountDownLatch latch = new CountDownLatch(numberOfTasks);
         Set<String> missingSymbols = new TreeSet<>();
         List<Future<CorrelationResult>> futures = new ArrayList<>(numberOfTasks);
+        System.out.println(String.format("Dispatching correlation calculation tasks, expecting %1$d", numberOfTasks));
+        long tasks = 0;
         for (int y = 0; y < axes.size(); y++) {
             for (int x = y + 1; x < axes.size(); x++) {
                 DescriptiveStatistics xStats = stats.get(axes.get(x));
@@ -89,23 +93,38 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                     if (xStats == null || yStats == null) {
                         continue;
                     }
-                    Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext);
+                    Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext, latch);
                     futures.add(service.submit(calc));
+                    tasks++;
                 } catch (CanNotCalculateException e) {
                     exceptionListener.listen(e);
                 }
             }
         }
+        System.out.println(String.format("Dispatched %1$d tasks of the expected %2$d", tasks, numberOfTasks));
+        System.out.flush();
 
         for (String missing : missingSymbols) {
             System.err.println(String.format("Could not find descriptive statistics for %1$s", missing));
         }
         System.err.flush();
 
+        /*
+        try {
+            System.out.println(String.format("Main thread parked, awaiting %1$d calculation tasks", tasks));
+            latch.await();
+        } catch (InterruptedException ie) {
+            throw new RuntimeException("Calculation was interrupted", ie);
+        }
+         */
+
         for (Future<CorrelationResult> calculatedResult : futures) {
             CorrelationResult result = null;
             try {
                 result = calculatedResult.get();
+                if (result == null) {
+                    System.out.println("Future returned a null result!");
+                }
                 int xIndex = axes.indexOf(result.symbolX);
                 int yIndex = axes.indexOf(result.symbolY);
                 data[yIndex][xIndex] = result.getResult();
@@ -143,47 +162,65 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
     }
 
     static class CorrelationCalculator implements Callable<CorrelationResult> {
+        private static final int LOG_THRESHOLD = 100;
+        private final CountDownLatch latch;
         private final MathContext mathContext;
         private final DescriptiveStatistics xAxis;
         private final DescriptiveStatistics yAxis;
 
-        public CorrelationCalculator(DescriptiveStatistics xAxis, DescriptiveStatistics yAxis, MathContext mathContext) throws CanNotCalculateException {
+        public CorrelationCalculator(DescriptiveStatistics xAxis, DescriptiveStatistics yAxis, MathContext mathContext, CountDownLatch latch) throws CanNotCalculateException {
+            this.latch = latch;
             this.mathContext = mathContext;
             this.xAxis = xAxis;
             this.yAxis = yAxis;
             if (xAxis.getStandardDeviation().equals(new BigDecimal(0))) {
+                latch.countDown();
                 throw new CanNotCalculateException("Standard deviation of xAxis is zero");
             } else if (yAxis.getStandardDeviation().equals(new BigDecimal(0))) {
+                latch.countDown();
                 throw new CanNotCalculateException("Standard deviation of yAxis is zero");
             }
         }
 
         @Override
         public CorrelationResult call() throws Exception {
-            // We can only calculate correlation where we have a pair of values.
+            System.out.println(String.format("\tCorrelating %1$s : %2$s", xAxis.getSymbol(), yAxis.getSymbol()));
+            System.out.flush();
             BigDecimal tally = new BigDecimal(0);
-            int maxIndex = Math.min(xAxis.getLength(), yAxis.getLength());
-            int xIndex = maxIndex-1;
-            int yIndex = maxIndex-1;
             int points = 0;
-            while (xIndex >= 0 && yIndex >= 0) {
-                long xTime = xAxis.getDate(xIndex).getTime();
-                long yTime = yAxis.getDate(yIndex).getTime();
-                while (xTime < yTime && xIndex >= 0) {
-                    xTime = xAxis.getDate(--xIndex).getTime();
+            try {
+                // We can only calculate correlation where we have a pair of values.
+                int maxIndex = Math.min(xAxis.getLength(), yAxis.getLength());
+                int xIndex = maxIndex-1;
+                int yIndex = maxIndex-1;
+
+                while (xIndex >= 0 && yIndex >= 0) {
+                    long xTime = xAxis.getDate(xIndex).getTime();
+                    long yTime = yAxis.getDate(yIndex).getTime();
+                    while (xTime < yTime && xIndex > 0) {
+                        xTime = xAxis.getDate(--xIndex).getTime();
+                    }
+                    while (yTime < xTime && yIndex > 0) {
+                        yTime = yAxis.getDate(--yIndex).getTime();
+                    }
+                    if (xTime == yTime && xIndex >= 0 && yIndex >= 0) {
+                        BigDecimal stdX = xAxis.getMean().subtract(xAxis.getValue(xIndex)).divide(xAxis.getStandardDeviation(), mathContext);
+                        BigDecimal stdY = yAxis.getMean().subtract(yAxis.getValue(yIndex)).divide(yAxis.getStandardDeviation(), mathContext);
+                        tally = tally.add(stdX.multiply(stdY));
+                        points++;
+                        System.out.println(String.format("\t\tCalculated %1$d of %2$d for %3$s : %4$s", points, maxIndex, xAxis.getSymbol(), yAxis.getSymbol()));
+                        xIndex--;
+                        yIndex--;
+                    } else {
+                        System.out.println(String.format("%1$s : %2$s xTime %3$d yTime %4$d xIndex %5$d yIndex %6$d", xAxis.getSymbol(), yAxis.getSymbol(), xTime, yTime, xIndex, yIndex));
+                    }
+                    System.out.flush();
                 }
-                while (yTime < xTime && yIndex >= 0) {
-                    yTime = yAxis.getDate(--yIndex).getTime();
-                }
-                if (xTime == yTime && xIndex >= 0 && yIndex >= 0) {
-                    BigDecimal stdX = xAxis.getMean().subtract(xAxis.getValue(xIndex)).divide(xAxis.getStandardDeviation(), mathContext);
-                    BigDecimal stdY = yAxis.getMean().subtract(yAxis.getValue(yIndex)).divide(yAxis.getStandardDeviation(), mathContext);
-                    tally = tally.add(stdX.multiply(stdY));
-                    points++;
-                    xIndex--;
-                    yIndex--;
-                }
+            } finally {
+                latch.countDown();
             }
+            System.out.println(String.format("\tCorrelated %1$s : %2$s", xAxis.getSymbol(), yAxis.getSymbol()));
+            System.out.flush();
             return new CorrelationResult(tally.divide(new BigDecimal(points -1), mathContext), xAxis.getSymbol(), yAxis.getSymbol());
         }
     }

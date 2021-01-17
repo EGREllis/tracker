@@ -1,12 +1,10 @@
 package net.finance;
 
 import net.finance.tracker.domain.axis.Axis;
-import net.finance.tracker.domain.axis.CloseAxisAdapter;
 import net.finance.tracker.domain.axis.OpenAxisAdapter;
 import net.finance.tracker.domain.calculation.CorrelationMatrix;
 import net.finance.tracker.domain.calculation.CorrelationMatrixCalculator;
 import net.finance.tracker.domain.calculation.CorrelationMatrixCalculatorImpl;
-import net.finance.tracker.domain.calculation.DescriptiveStatistics;
 import net.finance.tracker.domain.series.FinanceData;
 import net.finance.tracker.domain.series.Series;
 import net.finance.tracker.util.logging.LoggingListener;
@@ -14,6 +12,8 @@ import net.finance.tracker.util.logging.NoopListener;
 import net.finance.tracker.io.scrapper.FinanceDataLoader;
 import net.finance.tracker.util.pattern.Listener;
 
+import java.io.FileWriter;
+import java.io.Writer;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +26,11 @@ public class App {
         Listener<Exception> exceptionListener = getListenerFromProgramArguments(args);
 
         FinanceData data = new FinanceDataLoader(exceptionListener).call();
-
+        System.out.println(data.getSummary());
 
         CorrelationMatrixCalculator calculator = new CorrelationMatrixCalculatorImpl(exceptionListener, MathContext.DECIMAL64);
         int nThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService service = Executors.newFixedThreadPool(calculator.correlationsToCalculate(nThreads));
+        ExecutorService service = Executors.newFixedThreadPool(nThreads);
         try {
             CorrelationMatrix stocks = correlate(data.getStocks(), calculator, service);
             CorrelationMatrix rates = correlate(data.getRates(), calculator, service);
@@ -39,11 +39,21 @@ public class App {
         }
     }
 
+    private static void writeFile(String fileName, String contents) {
+        try {
+            Writer writer = new FileWriter(fileName);
+            writer.write(contents);
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static CorrelationMatrix correlate(Map<String, Series> seriesMap, CorrelationMatrixCalculator calculator, ExecutorService service) {
         List<Axis> axes = new ArrayList<>(seriesMap.size() * 2);
         for (Map.Entry<String, Series> entry : seriesMap.entrySet()) {
             axes.add(new OpenAxisAdapter(entry.getValue()));
-            axes.add(new CloseAxisAdapter(entry.getValue()));
         }
         return calculator.calculate(axes, service);
     }

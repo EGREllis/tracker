@@ -1,7 +1,5 @@
 package net.finance.tracker.domain.series;
 
-import net.finance.tracker.domain.series.Series;
-
 import java.util.Collections;
 import java.util.Map;
 
@@ -20,5 +18,19 @@ public class FinanceData {
 
     public Map<String,Series> getRates() {
         return Collections.unmodifiableMap(rates);
+    }
+
+    public String getSummary() {
+        return getSummary(stocks, "Stocks") + "\n"+ getSummary(rates, "Rates");
+    }
+
+    private String getSummary(Map<String,Series> seriesMap, String label) {
+        long records = 0;
+        long issues = 0;
+        for (Series series : seriesMap.values()) {
+            records += series.getLength();
+            issues += series.getNDataQualityIssues();
+        }
+        return String.format("%1$s loaded %2$d records with %3$d issues", label, records, issues);
     }
 }

@@ -20,8 +20,9 @@ public class StockSeries implements Series {
     private final BigDecimal[] close;
     private final BigDecimal[] adjClose;
     private final Long[] volume;
+    private final int loadErrors;
 
-    public StockSeries(String symbol, Date[] date, BigDecimal[] open, BigDecimal[] high, BigDecimal[] low, BigDecimal[] close, BigDecimal[] adjClose, Long[] volume) {
+    public StockSeries(String symbol, Date[] date, BigDecimal[] open, BigDecimal[] high, BigDecimal[] low, BigDecimal[] close, BigDecimal[] adjClose, Long[] volume, int loadErrors) {
         this.symbol = symbol;
         this.date = date;
         this.open = open;
@@ -30,6 +31,11 @@ public class StockSeries implements Series {
         this.close = close;
         this.adjClose = adjClose;
         this.volume = volume;
+        this.loadErrors = loadErrors;
+    }
+
+    public int getNDataQualityIssues() {
+        return loadErrors;
     }
 
     public int getLength() {
@@ -86,6 +92,7 @@ public class StockSeries implements Series {
     public static class StockSeriesBuilder implements Builder<Series> {
         private final String symbol;
         private final List<Object[]> dataLines = new ArrayList<>(DEFAULT_LINE_SIZE);
+        private final List<Exception> dataQualityIssues = new ArrayList<>();
 
         public StockSeriesBuilder(String symbol) {
             this.symbol = symbol;
@@ -93,6 +100,14 @@ public class StockSeries implements Series {
 
         public void addLine(Date date, BigDecimal open, BigDecimal high, BigDecimal low, BigDecimal close, BigDecimal adjClose, Long volume) {
             dataLines.add(new Object[] {date, open, high, low, close, adjClose, volume});
+        }
+
+        public void addDataQualityIssue(Exception e) {
+            dataQualityIssues.add(e);
+        }
+
+        public String getSummary() {
+            return String.format("Loaded %1$d lines for symbol %2$s with %3$d data quality issues", dataLines.size(), symbol, dataQualityIssues.size());
         }
 
         @Override
@@ -117,7 +132,7 @@ public class StockSeries implements Series {
                 volume[i] = (Long)line[6];
             }
 
-            return new StockSeries(symbol, date, open, high, low, close, adjClose, volume);
+            return new StockSeries(symbol, date, open, high, low, close, adjClose, volume, dataQualityIssues.size());
         }
     }
 }
