@@ -115,8 +115,8 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                 if (result == null) {
                     System.out.println("Future returned a null result!");
                 }
-                int xIndex = axes.indexOf(result.symbolX);
-                int yIndex = axes.indexOf(result.symbolY);
+                int xIndex = getIndexOfAxisWithSymbolFromAxes(result.symbolX, axes);
+                int yIndex = getIndexOfAxisWithSymbolFromAxes(result.symbolY, axes);
                 data[yIndex][xIndex] = result.getResult();
                 data[xIndex][yIndex] = result.getResult();
             } catch (InterruptedException | ExecutionException e) {
@@ -125,6 +125,15 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         }
         long stopTime = System.currentTimeMillis();
         System.out.println(String.format("Calculated %1$d correlations in %2$f/s", numberOfTasks, (stopTime - startTime)/1000.0));
+    }
+
+    private int getIndexOfAxisWithSymbolFromAxes(String symbol, List<Axis> axes) {
+        for (int i = 0; i < axes.size(); i++) {
+            if (symbol.equals(axes.get(i).getSymbol())) {
+                return i;
+            }
+        }
+        throw new IllegalArgumentException(String.format("Symbol %1$s could not be found in axes", symbol));
     }
 
     static class CorrelationResult {
