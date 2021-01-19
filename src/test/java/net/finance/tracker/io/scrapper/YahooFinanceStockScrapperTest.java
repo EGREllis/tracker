@@ -27,6 +27,23 @@ public class YahooFinanceStockScrapperTest {
 
         assertThat(series.getNDataQualityIssues(), equalTo(89));
         assertThat(series.getLength(), equalTo(2464-89));
+
+        assertThat(series.getDate(0), equalTo(DATE_FORMAT.parse("20110411")));
+        assertThat(series.getOpen(0), equalTo(new BigDecimal("1.080010")));
+        assertThat(series.getHigh(0), equalTo(new BigDecimal("1.086000")));
+        assertThat(series.getLow(0), equalTo(new BigDecimal("1.073000")));
+        assertThat(series.getClose(0), equalTo(new BigDecimal("1.080010")));
+        assertThat(series.getAdjClose(0), equalTo(new BigDecimal("1.015799")));
+        assertThat(((StockSeries)series).getVolume(0), equalTo(151120429L));
+
+        int lastIndex = series.getLength()-1;
+        assertThat(series.getDate(lastIndex), equalTo(DATE_FORMAT.parse("20210111")));
+        assertThat(series.getOpen(lastIndex), equalTo(new BigDecimal("0.391900")));
+        assertThat(series.getHigh(lastIndex), equalTo(new BigDecimal("0.394500")));
+        assertThat(series.getLow(lastIndex), equalTo(new BigDecimal("0.387000")));
+        assertThat(series.getClose(lastIndex), equalTo(new BigDecimal("0.389800")));
+        assertThat(series.getAdjClose(lastIndex), equalTo(new BigDecimal("0.389800")));
+        assertThat(((StockSeries)series).getVolume(lastIndex), equalTo(8585731L));
     }
 
     @Test
