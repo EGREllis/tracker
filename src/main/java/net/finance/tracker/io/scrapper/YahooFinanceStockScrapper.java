@@ -5,6 +5,7 @@ import net.finance.tracker.domain.series.StockSeries;
 import net.finance.tracker.util.pattern.Listener;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -20,6 +21,8 @@ import java.util.regex.Pattern;
 public class YahooFinanceStockScrapper implements Callable<Series> {
     private static final String DATA_LINE_ERROR_TEMPLATE = "Error in data line: %1$s";
     //https://query1.finance.yahoo.com/v7/finance/download/LSE.L?period1=1578813378&period2=1610435778&interval=1d&events=history&includeAdjustedClose=true
+    //https://query1.finance.yahoo.com/v7/finance/download/BARC.L?period1=0&period2=1610435778&interval=1d&events=history&includeAdjustedClose=true
+    //https://query1.finance.yahoo.com/v7/finance/download/0H6I.IL?period1=0&period2=1610435778&interval=1d&events=history&includeAdjustedClose=true
     private static final String YAHOO_URL_TEMPLATE = "https://query1.finance.yahoo.com/v7/finance/download/%1$s?period1=%2$s&period2=%3$s&interval=1d&events=history&includeAdjustedClose=true";
     private static final Pattern DATA_LINE = Pattern.compile("^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)$");
     private static final DateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
@@ -36,16 +39,21 @@ public class YahooFinanceStockScrapper implements Callable<Series> {
         this.listener = exceptionListener;
     }
 
-    @Override
-    public Series call() throws Exception {
-        StockSeries.StockSeriesBuilder builder = new StockSeries.StockSeriesBuilder(symbol);
+    InputStream getInputStream(String symbol, long firstPeriod, long secondPeriod) throws Exception {
         URL url = new URL(String.format(YAHOO_URL_TEMPLATE, symbol, firstPeriod, secondPeriod));
         URLConnection connection = url.openConnection();
         connection.connect();
+        return connection.getInputStream();
+    }
+
+    @Override
+    public Series call() throws Exception {
+        StockSeries.StockSeriesBuilder builder = new StockSeries.StockSeriesBuilder(symbol);
+
 
         String line;
         int lineN = 0;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(getInputStream(symbol, firstPeriod, secondPeriod)))) {
             boolean header = true;
 
             while ((line = reader.readLine()) != null) {

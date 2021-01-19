@@ -31,7 +31,7 @@ public class AxisCleanerImpl implements AxisCleaner {
                 records.add(new Object[]{a.getValue(aIndex), b.getValue(bIndex), a.getDate(aIndex)});
                 aIndex--;
                 bIndex--;
-            } else if (aIndex <= 0 && bIndex <= 0) {
+            } else if (aIndex <= 0 || bIndex <= 0) {
                 break;
             }
         }

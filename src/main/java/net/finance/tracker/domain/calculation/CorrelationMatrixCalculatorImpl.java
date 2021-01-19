@@ -190,10 +190,10 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                     long xTime = xAxis.getDate(xIndex).getTime();
                     long yTime = yAxis.getDate(yIndex).getTime();
                     while (xTime < yTime && xIndex > 0) {
-                        xTime = xAxis.getDate(--xIndex).getTime();
+                        yTime = yAxis.getDate(--yIndex).getTime();
                     }
                     while (yTime < xTime && yIndex > 0) {
-                        yTime = yAxis.getDate(--yIndex).getTime();
+                        xTime = xAxis.getDate(--xIndex).getTime();
                     }
                     if (xTime == yTime && xIndex >= 0 && yIndex >= 0) {
                         BigDecimal stdX = xStats.getMean().subtract(xAxis.getValue(xIndex)).divide(xStats.getStandardDeviation(), mathContext);
