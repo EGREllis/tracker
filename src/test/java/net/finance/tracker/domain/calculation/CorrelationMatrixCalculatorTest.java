@@ -54,9 +54,9 @@ public class CorrelationMatrixCalculatorTest {
         Date[] dates = makeDates(data);
 
         Axis axis = new SimpleAxis("TEST", data, dates);
-        DescriptiveStatistics stats = new DescriptiveStatistics.DescriptiveStatisticBuilder(axis, mathContext).call();
+        AxisCleaner axisCleaner = new AxisCleanerImpl();
 
-        CorrelationMatrixCalculatorImpl.CorrelationCalculator correlation = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(stats, stats, MathContext.DECIMAL64, latch);
+        CorrelationMatrixCalculatorImpl.CorrelationCalculator correlation = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(axis, axis, axisCleaner, MathContext.DECIMAL64, latch);
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlation.call();
 
         assertThat(result.getSymbolX(), equalTo("TEST"));
@@ -74,11 +74,10 @@ public class CorrelationMatrixCalculatorTest {
 
         Axis positiveAxis = new SimpleAxis("POSITIVE", positiveData, dates);
         Axis negativeAxis = new SimpleAxis("NEGATIVE", negativeData, dates);
-        DescriptiveStatistics positiveStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(positiveAxis, mathContext).call();
-        DescriptiveStatistics negativeStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(negativeAxis, mathContext).call();
+        AxisCleaner cleaner = new AxisCleanerImpl();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(positiveStatistics, negativeStatistics, mathContext, latch);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(positiveAxis, negativeAxis, cleaner, mathContext, latch);
 
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 
@@ -97,11 +96,10 @@ public class CorrelationMatrixCalculatorTest {
 
         Axis verticalAxis = new SimpleAxis("VERTICAL", vertical, dates);
         Axis horizontalAxis = new SimpleAxis("HORIZONTAL", horiztonal, dates);
-        DescriptiveStatistics verticalStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(verticalAxis, mathContext).call();
-        DescriptiveStatistics horizontalStatistics = new DescriptiveStatistics.DescriptiveStatisticBuilder(horizontalAxis, mathContext).call();
+        AxisCleaner cleaner = new AxisCleanerImpl();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStatistics, horizontalStatistics, mathContext, latch);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalAxis, horizontalAxis, cleaner, mathContext, latch);
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 
         assert false : "A CanNotCalculateException should not have been thrown.";
@@ -117,11 +115,10 @@ public class CorrelationMatrixCalculatorTest {
 
         Axis verticalAxis = new SimpleAxis("VERTICAL", vertical, dates);
         Axis horizontalAxis = new SimpleAxis("HORIZONTAL", horizontal, dates);
-        DescriptiveStatistics verticalStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(verticalAxis, mathContext).call();
-        DescriptiveStatistics horizontalStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(horizontalAxis, mathContext).call();
+        AxisCleaner cleaner = new AxisCleanerImpl();
 
         CorrelationMatrixCalculatorImpl.CorrelationCalculator correlationCalculator =
-                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalStats, horizontalStats, mathContext, latch);
+                new CorrelationMatrixCalculatorImpl.CorrelationCalculator(verticalAxis, horizontalAxis, cleaner, mathContext, latch);
 
         CorrelationMatrixCalculatorImpl.CorrelationResult result = correlationCalculator.call();
 

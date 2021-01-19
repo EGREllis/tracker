@@ -8,16 +8,6 @@ import java.math.MathContext;
 import java.util.*;
 import java.util.concurrent.*;
 
-/**
- * This needs a significant re-write:
- *  1) We only calculate correlations for dates present on both Axes
- *  2) The mean and standard deviation are based on the complete sample
- *  3) The mean and standard deviation are based on a different population from the correlation
- *
- * Solutions:
- *  1) Add a filter step before the call to the correlation matrix calculator (weak - a coder that forgets this issue could still fall foul of the bug)
- *  2) Modify correlation matrix calculator to receive Axes, filter them, calculate descriptive statistics then calculate correlations
- */
 public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalculator {
     private final Listener<Exception> exceptionListener;
     private final AxisCleaner axisCleaner;
@@ -79,11 +69,10 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         long tasks = 0;
         for (int y = 0; y < axes.size(); y++) {
             for (int x = y + 1; x < axes.size(); x++) {
-                CleanedAxes cleaned = axisCleaner.cleanAxes(axes.get(x), axes.get(y));
-                DescriptiveStatistics xStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getAClean(), mathContext).call();
-                DescriptiveStatistics yStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getBClean(), mathContext).call();
                 try {
-                    Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xStats, yStats, mathContext, latch);
+                    Axis xAxis = axes.get(x);
+                    Axis yAxis = axes.get(y);
+                    Callable<CorrelationResult> calc = new CorrelationMatrixCalculatorImpl.CorrelationCalculator(xAxis, yAxis, axisCleaner, mathContext, latch);
                     futures.add(service.submit(calc));
                     tasks++;
                 } catch (CanNotCalculateException e) {
@@ -99,17 +88,15 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
         }
         System.err.flush();
 
-        /*
         try {
             System.out.println(String.format("Main thread parked, awaiting %1$d calculation tasks", tasks));
             latch.await();
         } catch (InterruptedException ie) {
             throw new RuntimeException("Calculation was interrupted", ie);
         }
-         */
 
         for (Future<CorrelationResult> calculatedResult : futures) {
-            CorrelationResult result = null;
+            CorrelationResult result;
             try {
                 result = calculatedResult.get();
                 if (result == null) {
@@ -161,30 +148,36 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
     }
 
     static class CorrelationCalculator implements Callable<CorrelationResult> {
-        private static final int LOG_THRESHOLD = 100;
         private final CountDownLatch latch;
         private final MathContext mathContext;
-        private final DescriptiveStatistics xAxis;
-        private final DescriptiveStatistics yAxis;
+        private final AxisCleaner axisCleaner;
+        private final Axis xAxis;
+        private final Axis yAxis;
 
-        public CorrelationCalculator(DescriptiveStatistics xAxis, DescriptiveStatistics yAxis, MathContext mathContext, CountDownLatch latch) throws CanNotCalculateException {
+        public CorrelationCalculator(Axis xAxis, Axis yAxis, AxisCleaner cleaner, MathContext mathContext, CountDownLatch latch) throws CanNotCalculateException {
             this.latch = latch;
             this.mathContext = mathContext;
+            this.axisCleaner = cleaner;
             this.xAxis = xAxis;
             this.yAxis = yAxis;
-            if (xAxis.getStandardDeviation().equals(new BigDecimal(0))) {
-                latch.countDown();
-                throw new CanNotCalculateException("Standard deviation of xAxis is zero");
-            } else if (yAxis.getStandardDeviation().equals(new BigDecimal(0))) {
-                latch.countDown();
-                throw new CanNotCalculateException("Standard deviation of yAxis is zero");
-            }
         }
 
         @Override
         public CorrelationResult call() throws Exception {
             System.out.println(String.format("\tCorrelating %1$s : %2$s", xAxis.getSymbol(), yAxis.getSymbol()));
             System.out.flush();
+            CleanedAxes cleaned = axisCleaner.cleanAxes(xAxis, yAxis);
+            DescriptiveStatistics xStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getAClean(), mathContext).call();
+            DescriptiveStatistics yStats = new DescriptiveStatistics.DescriptiveStatisticBuilder(cleaned.getBClean(), mathContext).call();
+
+            if (xStats.getStandardDeviation().equals(new BigDecimal(0))) {
+                latch.countDown();
+                throw new CanNotCalculateException("Can not calculate correlation - standard deviation of the xAxis is zero");
+            } else if (yStats.getStandardDeviation().equals(new BigDecimal(0))) {
+                latch.countDown();
+                throw new CanNotCalculateException("Can not calculate correlation - standard deviation of the yAxis is zero");
+            }
+
             BigDecimal tally = new BigDecimal(0);
             int points = 0;
             try {
@@ -203,8 +196,8 @@ public class CorrelationMatrixCalculatorImpl implements CorrelationMatrixCalcula
                         yTime = yAxis.getDate(--yIndex).getTime();
                     }
                     if (xTime == yTime && xIndex >= 0 && yIndex >= 0) {
-                        BigDecimal stdX = xAxis.getMean().subtract(xAxis.getValue(xIndex)).divide(xAxis.getStandardDeviation(), mathContext);
-                        BigDecimal stdY = yAxis.getMean().subtract(yAxis.getValue(yIndex)).divide(yAxis.getStandardDeviation(), mathContext);
+                        BigDecimal stdX = xStats.getMean().subtract(xAxis.getValue(xIndex)).divide(xStats.getStandardDeviation(), mathContext);
+                        BigDecimal stdY = xStats.getMean().subtract(yAxis.getValue(yIndex)).divide(xStats.getStandardDeviation(), mathContext);
                         tally = tally.add(stdX.multiply(stdY));
                         points++;
                         System.out.println(String.format("\t\tCalculated %1$d of %2$d for %3$s : %4$s", points, maxIndex, xAxis.getSymbol(), yAxis.getSymbol()));
